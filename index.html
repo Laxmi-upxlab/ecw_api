@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Authorization Code Received</title>
+    <title>Redirecting...</title>
 
     <style>
         body {
@@ -12,120 +12,65 @@
             text-align: center;
         }
 
-        .container {
-            max-width: 600px;
-            margin: auto;
-            border: 1px solid #ccc;
-            padding: 20px;
-            border-radius: 8px;
+        /* Hide everything except timer */
+        .hidden {
+            display: none !important;
         }
 
-        h1 {
-            color: #333;
-        }
-
-        .code-display {
-            background-color: #f4f4f4;
-            border: 1px solid #ddd;
-            padding: 10px;
-            margin-top: 20px;
-            word-wrap: break-word;
-            text-align: left;
-        }
-
-        .button-container {
-            margin-top: 20px;
-        }
-
-        #redirect-button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 20px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 16px;
-        }
-
-        #timer {
-            margin-top: 15px;
+        .timer-msg {
+            margin-top: 100px;
+            font-size: 22px;
             font-weight: bold;
-            color: #555;
+            color: #007bff;
         }
     </style>
 </head>
 
 <body>
 
-<div class="container">
-    <h1>Authorization Complete</h1>
-    <p>The authorization code has been captured. You will be redirected automatically.</p>
+    <!-- Only this timer message will remain visible -->
+    <p id="timer-display" class="timer-msg">Starting redirect in 3s...</p>
 
-    <div class="code-display">
-        <strong>Authorization Code:</strong>
-        <p id="authCode">Loading...</p>
-
-        <strong>State:</strong>
-        <p id="stateValue">Loading...</p>
+    <!-- Hidden container (kept only for functionality) -->
+    <div id="hidden-container" class="hidden">
+        <p id="authCode"></p>
+        <p id="stateValue"></p>
     </div>
 
-    <p id="timer">Redirecting in 30 seconds...</p>
+    <script>
+        // Extract query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
 
-    <div class="button-container">
-        <button id="redirect-button" disabled>
-            Connect to Local App Now
-        </button>
-    </div>
-</div>
+        const timerDisplay = document.getElementById('timer-display');
 
-<script>
-    // Read query parameters
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get("code");
-    const state = urlParams.get("state");
+        const LOCAL_SERVER_URL = "http://localhost:5002/callback";
+        let countdown = 3;
 
-    const codeElement = document.getElementById("authCode");
-    const stateElement = document.getElementById("stateValue");
-    const redirectButton = document.getElementById("redirect-button");
-    const timerElement = document.getElementById("timer");
+        if (code && state) {
+            // Countdown logic
+            const timerInterval = setInterval(() => {
+                countdown--;
+                if (countdown > 0) {
+                    timerDisplay.textContent = `Starting redirect in ${countdown}s...`;
+                } else {
+                    timerDisplay.textContent = "Redirecting...";
+                    clearInterval(timerInterval);
+                }
+            }, 1000);
 
-    if (code && state) {
-        // Display values
-        codeElement.textContent = code;
-        stateElement.textContent = state;
+            // Redirect after 3 seconds
+            setTimeout(() => {
+                const relayUrl = `${LOCAL_SERVER_URL}?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}`;
+                window.location.replace(relayUrl);
+            }, 3000);
 
-        // Enable button
-        redirectButton.disabled = false;
-
-        // Redirect function
-        const redirectToLocalApp = () => {
-            const localServerUrl = "http://localhost:5002/callback";
-            const redirectUrl = `${localServerUrl}?code=${code}&state=${state}`;
-            window.location.replace(redirectUrl);
-        };
-
-        // Manual click support
-        redirectButton.addEventListener("click", redirectToLocalApp);
-
-        // Countdown + auto redirect
-        let seconds = 30;
-        const countdown = setInterval(() => {
-            seconds--;
-            timerElement.textContent = `Redirecting in ${seconds} seconds...`;
-
-            if (seconds <= 0) {
-                clearInterval(countdown);
-                redirectToLocalApp();
-            }
-        }, 1000);
-
-    } else {
-        codeElement.textContent = "No authorization code found.";
-        stateElement.textContent = "No state found.";
-        timerElement.textContent = "Unable to redirect.";
-        console.error("Missing authorization code or state.");
-    }
-</script>
+        } else {
+            timerDisplay.textContent = "Error: Missing authorization data.";
+            timerDisplay.style.color = "red";
+        }
+    </script>
 
 </body>
 </html>
